@@ -7,21 +7,14 @@ library(stringr)
 #assumed to be either subject_train.txt or subject_test.txt and pastes the 
 #subject id for each observation. Lastly, the function adds a result_label 
 #variable that matches the result ids for worded labels. 
-get_training_data = function(file_name, file_name2, file_name3, place_to_put){
-        con = file(file_name)
-        foo = readLines(con)
-        newdf = data.frame(mean = 1:length(foo), standard_dev = 1:length(foo))
-        for (i in 1:length(foo)){
-                fool = foo[i]
-                bar = str_trim(fool)
-                bar = strsplit(bar, ' ')[[1]]
-                bar = as.numeric(bar)
-                newdf$mean[i] = mean(bar, na.rm = TRUE)
-                newdf$standard_dev[i] = var(bar, na.rm = TRUE)^0.5
-        }
-        close(con)
+get_training_data = function(file_name, file_name2, file_name3, file_name4, place_to_put){
+        newdf = read.table(file_name)
+        names(newdf) = read.table(file_name4)[,2]
+        newdf = newdf[, !is.na(str_match(names(newdf), 'mean|std'))]
         con = file(file_name2)
         con2 = file(file_name3)
+        #Yes, I know the below is not the best way to read data, but this was what I 
+        #did this was what I did. 
         foo = readLines(file_name2)
         foo1 = readLines(file_name3)
         for (i in 1:length(foo)){
@@ -33,6 +26,31 @@ get_training_data = function(file_name, file_name2, file_name3, place_to_put){
         closeAllConnections()
         return(newdf)
 }
+aac = get_training_data('UCI HAR Dataset/train/X_train.txt', 'UCI HAR Dataset/train/y_train.txt', 'UCI HAR Dataset/train/subject_train.txt', 'UCI HAR Dataset/features.txt', data.frame())
+aac = get_training_data('UCI HAR Dataset/test/X_test.txt', 'UCI HAR Dataset/test/y_test.txt', 'UCI HAR Dataset/test/subject_test.txt', 'UCI HAR Dataset/features.txt', aac)
+aac$person_id = sapply(aac$person_id, as.numeric)
+aac$person_id = factor(aac$person_id)
+aac$result_label = factor(aac$result_label)
+aac = group_by(aac, person_id, result_label)
+out_set = summarise_all(aac, mean)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#PLEASE disregard what's below: I misunderstood the problem description.
 
 #The below function takes one variable in the Inertial Signals folder (total
 #acceleration, body gyro, or body acceleration), and puts its mean for each 
@@ -79,4 +97,5 @@ bigdata$person_id = factor(bigdata$person_id)
 bigdata$result_label = factor(bigdata$result_label)
 #the below two lines sort the data into by_activity and by_person. 
 by_activity = summarise(group_by(bigdata, bigdata$result_label), mean_total_accelx = mean(accelx), mean_total_accely = mean(accely), mean_total_accelz = mean(accelz), mean_gyrox = mean(gyrox), mean_gyroy = mean(gyroy), mean_gyroz = mean(gyroz), mean_body_accelx = mean(bodyaccelx), mean_body_accely = mean(bodyaccely), mean_body_accelz = mean(bodyaccelz))
-by_person = summarise(group_by(bigdata, bigdata$person_id), mean_total_accelx = mean(accelx), mean_total_accely = mean(accely), mean_total_accelz = mean(accelz), mean_gyrox = mean(gyrox), mean_gyroy = mean(gyroy), mean_gyroz = mean(gyroz), mean_body_accelx = mean(bodyaccelx), mean_body_accely = mean(bodyaccely), mean_body_accelz = mean(bodyaccelz))
+
+by_person = summarise(group_by(bigdata, bigdata$person_id, bigdata$result_label), mean_total_accelx = mean(accelx), mean_total_accely = mean(accely), mean_total_accelz = mean(accelz), mean_gyrox = mean(gyrox), mean_gyroy = mean(gyroy), mean_gyroz = mean(gyroz), mean_body_accelx = mean(bodyaccelx), mean_body_accely = mean(bodyaccely), mean_body_accelz = mean(bodyaccelz))
